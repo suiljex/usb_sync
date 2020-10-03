@@ -16,6 +16,7 @@ REMOTE_DOCS_DIR="${REMOTE_WORK_DIR}/documents"
 REMOTE_PROJ_DIR="${REMOTE_WORK_DIR}/projects"
 
 VERBOSE=0
+DRY_RUN=0
 YES=0
 
 VOID="/dev/null"
@@ -79,10 +80,10 @@ sync_dirs()
     return 1
   fi
   
-  ${RSYNC} ${RSYNC_VERB} "$1" "$2"
+  ${RSYNC} ${RSYNC_OPTS} --delete "$1" "$2"
 }
 
-sync_dirs_delete()
+sync_dirs_backup()
 {
   if [ ! -d "$1" ]
   then
@@ -102,19 +103,24 @@ sync_dirs_delete()
     return 1
   fi
   
-  ${RSYNC} ${RSYNC_VERB} --delete --backup --backup-dir="$3" --suffix="."$(eval ${TIMESTAMP}) "$1" "$2"
+  ${RSYNC} ${RSYNC_OPTS} --delete --backup --backup-dir="$3" --suffix="."$(eval ${TIMESTAMP}) "$1" "$2"
 }
 
-set_rsync_verb()
+set_rsync_opts()
 {
   if [ ${VERBOSE} -ge 2 ]
   then
-    RSYNC_VERB="--verbose"
+    RSYNC_OPTS="--verbose"
   fi
   
   if [ ${VERBOSE} -ge 3 ]
   then
-    RSYNC_VERB="--verbose --verbose"
+    RSYNC_OPTS="${RSYNC_OPTS} --verbose"
+  fi
+  
+  if [ ${DRY_RUN} -eq 1 ]
+  then
+    RSYNC_OPTS="${RSYNC_OPTS} --dry-run --itemize-changes"
   fi
 }
 
@@ -147,12 +153,12 @@ sync_remote_to_local()
     return 1
   fi
   
-  set_rsync_verb
+  set_rsync_opts
   
   init_local_dirs
   
-  sync_dirs_delete "${REMOTE_DOCS_DIR}/" "${LOCAL_DOCS_DIR}/" "${LOCAL_DOCS_BU_DIR}"
-  sync_dirs_delete "${REMOTE_PROJ_DIR}/" "${LOCAL_PROJ_DIR}/" "${LOCAL_PROJ_BU_DIR}"
+  sync_dirs_backup "${REMOTE_DOCS_DIR}/" "${LOCAL_DOCS_DIR}/" "${LOCAL_DOCS_BU_DIR}"
+  sync_dirs_backup "${REMOTE_PROJ_DIR}/" "${LOCAL_PROJ_DIR}/" "${LOCAL_PROJ_BU_DIR}"
 }
 
 sync_local_to_remote()
@@ -170,7 +176,7 @@ sync_local_to_remote()
     return 1
   fi
   
-  set_rsync_verb
+  set_rsync_opts
   
   init_remote_dirs
   
@@ -183,10 +189,11 @@ show_help()
   printf "Cинхронизация хранилища $0\n"
   printf "Использование:\n"
   printf "\t$0 [-h]\n"
-  printf "\t$0 -l [--local-dir <локальное хранилище> [--remote-dir <удаленное хранилище>]]\n"
-  printf "\t$0 -s [--local-dir <локальное хранилище> [--remote-dir <удаленное хранилище>]]\n"
+  printf "\t$0 -l [-n] [--local-dir <локальное хранилище>] [--remote-dir <удаленное хранилище>]\n"
+  printf "\t$0 -s [-n] [--local-dir <локальное хранилище>] [--remote-dir <удаленное хранилище>]\n"
   printf "\t\t-s, --save - Сохранить данные из удаленного хранилища в локальное\n"
   printf "\t\t-l, --load - Загрузить данные из локального хранилища в удаленное\n"
+  printf "\t\t-n, --dry-run - Показать изменения, которые будут произведены\n"
   printf "\t\t--yes - Соглашаться со всеми запросами\n"
   printf "\t\t--local-dir - Указать локальное хранилище\n"
   printf "\t\t--remote-dir - Указать удаленное хранилище\n"
@@ -211,6 +218,9 @@ print_debug()
   echo "Локальная директория:" "$LOCAL_PROJ_DIR"
   echo "Локальная директория (для резерва):" "$LOCAL_DOCS_BU_DIR"
   echo "Локальная директория (для резерва):" "$LOCAL_PROJ_BU_DIR"
+  echo "YES:" "$YES"
+  echo "DRY_RUN:" "$DRY_RUN"
+  echo "VERBOSE:" "$VERBOSE"
   echo "COMMAND:" "${COMMAND}"
 }
 
@@ -295,6 +305,9 @@ parse_command()
       --remote-dir=)         # Handle the case of an empty --file=
         report_message "ERROR: \"--remote-dir\" requires a non-empty option argument."
         return 1
+        ;;
+      -n|--dry-run)       # Takes an option argument;
+        DRY_RUN=1
         ;;
       -y|--yes)       # Takes an option argument;
         YES=1
