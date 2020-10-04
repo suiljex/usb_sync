@@ -161,7 +161,7 @@ sync_remote_to_local()
   
   for DIR in "${SYNC_DIRS[@]}"
   do
-    sync_dirs_backup "${REMOTE_DIR}/${DIR}" "${LOCAL_DIR}/${SYNC_DIR}/${DIR}" "${LOCAL_DIR}/${BACKUP_DIR}/${DIR}"
+    sync_dirs_backup "${REMOTE_DIR}/${DIR}/" "${LOCAL_DIR}/${SYNC_DIR}/${DIR}/" "${LOCAL_DIR}/${BACKUP_DIR}/${DIR}/"
   done
 }
 
@@ -186,7 +186,7 @@ sync_local_to_remote()
   
   for DIR in "${SYNC_DIRS[@]}"
   do
-    sync_dirs "${LOCAL_DIR}/${SYNC_DIR}/${DIR}" "${REMOTE_DIR}/${DIR}"
+    sync_dirs "${LOCAL_DIR}/${SYNC_DIR}/${DIR}/" "${REMOTE_DIR}/${DIR}/"
   done
 }
 
