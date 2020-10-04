@@ -3,17 +3,16 @@
 EXECUTABLE="$(realpath "$0")"
 ROOT_DIR="$(realpath "$(dirname "$0")")"
 
-LOCAL_DIR=${ROOT_DIR}
-LOCAL_WORK_DIR="${LOCAL_DIR}/work"
-LOCAL_DOCS_DIR="${LOCAL_WORK_DIR}/documents"
-LOCAL_PROJ_DIR="${LOCAL_WORK_DIR}/projects"
-LOCAL_DOCS_BU_DIR="${LOCAL_WORK_DIR}/backup_documents"
-LOCAL_PROJ_BU_DIR="${LOCAL_WORK_DIR}/backup_projects"
+LOCAL_DIR="${ROOT_DIR}"
+REMOTE_DIR="${HOME}"
 
-REMOTE_DIR=${HOME}
-REMOTE_WORK_DIR="${REMOTE_DIR}/work"
-REMOTE_DOCS_DIR="${REMOTE_WORK_DIR}/documents"
-REMOTE_PROJ_DIR="${REMOTE_WORK_DIR}/projects"
+BACKUP_DIR="BACKUP"
+SYNC_DIR="SYNC"
+
+declare -a SYNC_DIRS=(
+    "work/documents"
+    "work/projects"
+)
 
 VERBOSE=0
 DRY_RUN=0
@@ -103,7 +102,7 @@ sync_dirs_backup()
     return 1
   fi
   
-  ${RSYNC} ${RSYNC_OPTS} --delete --backup --backup-dir="$3" --suffix="."$(eval ${TIMESTAMP}) "$1" "$2"
+  ${RSYNC} ${RSYNC_OPTS} --delete --backup --backup-dir="$3" --suffix="_"$(eval ${TIMESTAMP}) "$1" "$2"
 }
 
 set_rsync_opts()
@@ -126,16 +125,19 @@ set_rsync_opts()
 
 init_local_dirs()
 {
-  create_dir ${LOCAL_DOCS_DIR}
-  create_dir ${LOCAL_PROJ_DIR}
-  create_dir ${LOCAL_DOCS_BU_DIR}
-  create_dir ${LOCAL_PROJ_BU_DIR}
+  for DIR in "${SYNC_DIRS[@]}"
+  do
+    create_dir "${LOCAL_DIR}/${SYNC_DIR}/${DIR}"
+    create_dir "${LOCAL_DIR}/${BACKUP_DIR}/${DIR}"
+  done
 }
 
 init_remote_dirs()
 {
-  create_dir ${REMOTE_DOCS_DIR}
-  create_dir ${REMOTE_PROJ_DIR}
+  for DIR in "${SYNC_DIRS[@]}"
+  do
+    create_dir "${REMOTE_DIR}/${DIR}"
+  done
 }
 
 sync_remote_to_local()
@@ -157,8 +159,10 @@ sync_remote_to_local()
   
   init_local_dirs
   
-  sync_dirs_backup "${REMOTE_DOCS_DIR}/" "${LOCAL_DOCS_DIR}/" "${LOCAL_DOCS_BU_DIR}"
-  sync_dirs_backup "${REMOTE_PROJ_DIR}/" "${LOCAL_PROJ_DIR}/" "${LOCAL_PROJ_BU_DIR}"
+  for DIR in "${SYNC_DIRS[@]}"
+  do
+    sync_dirs_backup "${REMOTE_DIR}/${DIR}" "${LOCAL_DIR}/${SYNC_DIR}/${DIR}" "${LOCAL_DIR}/${BACKUP_DIR}/${DIR}"
+  done
 }
 
 sync_local_to_remote()
@@ -180,8 +184,10 @@ sync_local_to_remote()
   
   init_remote_dirs
   
-  sync_dirs "${LOCAL_DOCS_DIR}/" "${REMOTE_DOCS_DIR}/"
-  sync_dirs "${LOCAL_PROJ_DIR}/" "${REMOTE_PROJ_DIR}/"
+  for DIR in "${SYNC_DIRS[@]}"
+  do
+    sync_dirs "${LOCAL_DIR}/${SYNC_DIR}/${DIR}" "${REMOTE_DIR}/${DIR}"
+  done
 }
 
 show_help()
@@ -261,11 +267,6 @@ parse_command()
       --local-dir)
         if [ "$2" ]; then
           LOCAL_DIR=$2
-          LOCAL_WORK_DIR="${LOCAL_DIR}/work"
-          LOCAL_DOCS_DIR="${LOCAL_WORK_DIR}/documents"
-          LOCAL_PROJ_DIR="${LOCAL_WORK_DIR}/projects"
-          LOCAL_DOCS_BU_DIR="${LOCAL_WORK_DIR}/documents_backup"
-          LOCAL_PROJ_BU_DIR="${LOCAL_WORK_DIR}/projects_backup"
           shift
         else
           report_message "ERROR: \"--local-dir\" requires a non-empty option argument."
@@ -274,11 +275,6 @@ parse_command()
         ;;
       --local-dir=?*)
         LOCAL_DIR=${1#*=} # Delete everything up to "=" and assign the remainder.
-        LOCAL_WORK_DIR="${LOCAL_DIR}/work"
-        LOCAL_DOCS_DIR="${LOCAL_WORK_DIR}/documents"
-        LOCAL_PROJ_DIR="${LOCAL_WORK_DIR}/projects"
-        LOCAL_DOCS_BU_DIR="${LOCAL_WORK_DIR}/documents_backup"
-        LOCAL_PROJ_BU_DIR="${LOCAL_WORK_DIR}/projects_backup"
         ;;
       --local-dir=)         # Handle the case of an empty --file=
         report_message "ERROR: \"--local-dir\" requires a non-empty option argument."
@@ -287,9 +283,6 @@ parse_command()
       --remote-dir)
         if [ "$2" ]; then
           REMOTE_DIR=$2
-          REMOTE_WORK_DIR="${REMOTE_DIR}/work"
-          REMOTE_DOCS_DIR="${REMOTE_WORK_DIR}/documents"
-          REMOTE_PROJ_DIR="${REMOTE_WORK_DIR}/projects"
           shift
         else
           report_message "ERROR: \"--remote-dir\" requires a non-empty option argument."
@@ -298,9 +291,6 @@ parse_command()
         ;;
       --remote-dir=?*)
         REMOTE_DIR=${1#*=} # Delete everything up to "=" and assign the remainder.
-        REMOTE_WORK_DIR="${REMOTE_DIR}/work"
-        REMOTE_DOCS_DIR="${REMOTE_WORK_DIR}/documents"
-        REMOTE_PROJ_DIR="${REMOTE_WORK_DIR}/projects"
         ;;
       --remote-dir=)         # Handle the case of an empty --file=
         report_message "ERROR: \"--remote-dir\" requires a non-empty option argument."
