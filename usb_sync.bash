@@ -9,10 +9,9 @@ REMOTE_DIR="${HOME}"
 BACKUP_DIR="BACKUP"
 SYNC_DIR="SYNC"
 
-declare -a SYNC_DIRS=(
-    "work/documents"
-    "work/projects"
-)
+MANIFEST_FILE="${ROOT_DIR}/MANIFEST"
+
+SYNC_DIR=0
 
 VERBOSE=0
 DRY_RUN=0
@@ -51,6 +50,17 @@ confirm_choice()
 report_message()
 {
   printf '%s\n' "$1" >&2
+}
+
+read_manifest()
+{
+  if [ -f "$1" ]
+  then
+    readarray -t SYNC_DIRS < "$1"
+  else
+    report_message "ERROR: Отсутствует файл манифеста: $1"
+    return 1
+  fi
 }
 
 create_dir()
@@ -224,6 +234,7 @@ print_debug()
   echo "Локальная директория:" "$LOCAL_PROJ_DIR"
   echo "Локальная директория (для резерва):" "$LOCAL_DOCS_BU_DIR"
   echo "Локальная директория (для резерва):" "$LOCAL_PROJ_BU_DIR"
+  echo "Файл манифеста:" "${MANIFEST_FILE}"
   echo "YES:" "$YES"
   echo "DRY_RUN:" "$DRY_RUN"
   echo "VERBOSE:" "$VERBOSE"
@@ -345,6 +356,8 @@ then
 fi
 
 print_debug
+
+read_manifest ${MANIFEST_FILE}
 
 execute_comand
 
