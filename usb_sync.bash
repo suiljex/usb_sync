@@ -11,7 +11,7 @@ SYNC_DIR="SYNC"
 
 MANIFEST_FILE="${ROOT_DIR}/MANIFEST"
 
-SYNC_DIR=0
+# SYNC_DIR Содержит массив директорий для синхронизации
 
 VERBOSE=0
 DRY_RUN=0
