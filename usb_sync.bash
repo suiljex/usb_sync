@@ -22,7 +22,7 @@ GEN32CHAR="cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32"
 TIMESTAMP="date +%Y.%m.%d-%H.%M.%S"
 MD="mkdir --parents"
 
-RSYNC="rsync --archive --update"
+RSYNC="rsync --archive --update --no-perms --no-owner --no-group"
 
 confirm_choice()
 {
