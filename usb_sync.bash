@@ -371,9 +371,19 @@ fi
 print_debug
 
 read_manifest ${MANIFEST_FILE}
+RESULT=$?
+if [ ${RESULT} -ne 0 ]
+then
+  exit ${RESULT}
+fi
 
 execute_comand
+RESULT=$?
+if [ ${RESULT} -ne 0 ]
+then
+  exit ${RESULT}
+fi
 
-exit $?
+exit 0
 
 
