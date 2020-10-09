@@ -35,7 +35,7 @@ GEN32CHAR="cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32"
 TIMESTAMP="date +%Y.%m.%d-%H.%M.%S"
 MD="mkdir --parents"
 
-RSYNC="rsync --archive --update --no-perms --no-owner --no-group"
+RSYNC="rsync --archive --update --no-perms --no-owner --no-group --modify-window=1"
 
 confirm_choice()
 {
@@ -223,7 +223,7 @@ show_help()
   printf "\t\t-s, --save - Сохранить данные из удаленного хранилища в локальное\n"
   printf "\t\t-l, --load - Загрузить данные из локального хранилища в удаленное\n"
   printf "\t\t-n, --dry-run - Показать изменения, которые будут произведены\n"
-  printf "\t\t--yes - Соглашаться со всеми запросами\n"
+  printf "\t\t-y, --yes - Соглашаться со всеми запросами\n"
   printf "\t\t--local-dir - Указать локальное хранилище\n"
   printf "\t\t--remote-dir - Указать удаленное хранилище\n"
   printf "\t\t-v, --verbose - Общительный режим\n"
