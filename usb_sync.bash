@@ -26,7 +26,7 @@ MANIFEST_FILE="${ROOT_DIR}/MANIFEST"
 
 # SYNC_DIR Содержит массив директорий для синхронизации
 
-VERBOSE=0
+VERBOSE=1
 DRY_RUN=0
 YES=0
 
@@ -227,6 +227,7 @@ show_help()
   printf "\t\t--local-dir - Указать локальное хранилище\n"
   printf "\t\t--remote-dir - Указать удаленное хранилище\n"
   printf "\t\t-v, --verbose - Общительный режим\n"
+  printf "\t\t-q, --quiet - Тихий режим\n"
 }
 
 print_debug()
@@ -329,7 +330,13 @@ parse_command()
       -v|--verbose)
         VERBOSE=$((VERBOSE + 1))  # Each -v adds 1 to verbosity.
         ;;
-      --)              # End of all options.
+      -q|--quiet)
+        if [ ${VERBOSE} -gt 0 ]
+        then
+          VERBOSE=$((VERBOSE - 1))  # Each -q adds -1 to verbosity.
+        fi
+        ;;
+      --) # End of all options.
         shift
         break
         ;;
