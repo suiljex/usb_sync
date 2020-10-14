@@ -23,6 +23,7 @@ BACKUP_DIR="BACKUP"
 SYNC_DIR="SYNC"
 
 MANIFEST_FILE="${ROOT_DIR}/MANIFEST"
+LOG_FILE="${ROOT_DIR}/OPERATIONS.LOG"
 
 # SYNC_DIR Содержит массив директорий для синхронизации
 
@@ -36,6 +37,8 @@ TIMESTAMP="date +%Y.%m.%d-%H.%M.%S"
 MD="mkdir --parents"
 
 RSYNC="rsync --archive --update --no-perms --no-owner --no-group --modify-window=1"
+GETMACHINEID="cat /etc/machine-id"
+GETLASTLOG="tail -n 1 ${LOG_FILE}"
 
 confirm_choice()
 {
@@ -74,6 +77,43 @@ read_manifest()
     report_message "ERROR: Отсутствует файл манифеста: $1"
     return 1
   fi
+}
+
+log_operation()
+{
+  MACHINEID=$(${GETMACHINEID})
+  OPERATION_TIME=$(eval ${TIMESTAMP})
+
+  case $1 in
+    local-to-remote)
+      echo ${OPERATION_TIME} "LOCAL -> REMOTE [${MACHINEID}]" >> "${LOG_FILE}"
+      ;;
+    remote-to-local)
+      echo ${OPERATION_TIME} "LOCAL <- REMOTE [${MACHINEID}]" >> "${LOG_FILE}"
+      ;;
+    sync)
+      echo ${OPERATION_TIME} "LOCAL <> REMOTE [${MACHINEID}]" >> "${LOG_FILE}"
+      ;;
+    *)
+      return 1
+  esac
+}
+
+print_info()
+{
+  if [ ${VERBOSE} -le 0 ]
+  then
+    return 1
+  fi
+
+  MACHINEID=$(${GETMACHINEID})
+  if [ -f ${LOG_FILE} ]
+  then
+    LASTLOG=$(${GETLASTLOG})
+  fi
+  
+  echo "Идентифиакатор удаленного хранилища: ${MACHINEID}"
+  echo ${LASTLOG} "-- Последняя операция"
 }
 
 create_dir()
@@ -178,6 +218,11 @@ sync_remote_to_local()
     return 1
   fi
   
+  if [ ${DRY_RUN} -eq 0 ]
+  then
+    log_operation remote-to-local
+  fi
+  
   set_rsync_opts
   
   init_local_dirs
@@ -201,6 +246,11 @@ sync_local_to_remote()
   then
     report_message "WARN: Отмена!"
     return 1
+  fi
+  
+  if [ ${DRY_RUN} -eq 0 ]
+  then
+    log_operation local-to-remote
   fi
   
   set_rsync_opts
@@ -376,6 +426,8 @@ then
 fi
 
 print_debug
+
+print_info
 
 read_manifest ${MANIFEST_FILE}
 RESULT=$?
