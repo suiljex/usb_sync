@@ -33,8 +33,8 @@ YES=0
 
 VOID="/dev/null"
 GEN32CHAR="cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32"
-TIMESTAMP_FILE="date +%Y.%m.%d-%H.%M.%S"
-TIMESTAMP_LOG="date +%Y.%m.%d %H:%M:%S"
+TIMESTAMP_FILE="date '+%Y.%m.%d-%H.%M.%S'"
+TIMESTAMP_LOG="date '+%Y.%m.%d %H:%M:%S'"
 MD="mkdir --parents"
 
 RSYNC="rsync --archive --update --no-perms --no-owner --no-group --modify-window=1"
