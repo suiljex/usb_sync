@@ -33,7 +33,8 @@ YES=0
 
 VOID="/dev/null"
 GEN32CHAR="cat /dev/urandom | tr -cd 'a-z0-9' | head -c 32"
-TIMESTAMP="date +%Y.%m.%d-%H.%M.%S"
+TIMESTAMP_FILE="date +%Y.%m.%d-%H.%M.%S"
+TIMESTAMP_LOG="date +%Y.%m.%d %H:%M:%S"
 MD="mkdir --parents"
 
 RSYNC="rsync --archive --update --no-perms --no-owner --no-group --modify-window=1"
@@ -82,7 +83,7 @@ read_manifest()
 log_operation()
 {
   MACHINEID=$(${GETMACHINEID})
-  OPERATION_TIME=$(eval ${TIMESTAMP})
+  OPERATION_TIME=$(eval ${TIMESTAMP_LOG})
 
   case $1 in
     local-to-remote)
@@ -165,7 +166,7 @@ sync_dirs_backup()
     return 1
   fi
   
-  ${RSYNC} ${RSYNC_OPTS} --delete --backup --backup-dir="$3" --suffix="_"$(eval ${TIMESTAMP}) "$1" "$2"
+  ${RSYNC} ${RSYNC_OPTS} --delete --backup --backup-dir="$3" --suffix="_"$(eval ${TIMESTAMP_FILE}) "$1" "$2"
 }
 
 set_rsync_opts()
@@ -207,6 +208,7 @@ sync_remote_to_local()
 {
   if [ ${VERBOSE} -ge 1 ]
   then
+    echo "                    LOCAL <- REMOTE [${MACHINEID}]" "-- Текущая операция"
     echo "Копирование данных в локальное хранилище:" ${LOCAL_DIR}
   fi
   
@@ -237,6 +239,7 @@ sync_local_to_remote()
 {
   if [ ${VERBOSE} -ge 1 ]
   then
+    echo "                    LOCAL -> REMOTE [${MACHINEID}]" "-- Текущая операция"
     echo "Копирование данных в удаленное хранилище:" ${REMOTE_DIR}
   fi
   
