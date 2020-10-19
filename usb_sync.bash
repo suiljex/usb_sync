@@ -39,7 +39,9 @@ MD="mkdir --parents"
 
 RSYNC="rsync --archive --update --no-perms --no-owner --no-group --modify-window=1"
 GETMACHINEID="cat /etc/machine-id"
-GETLASTLOG="tail -n 1 ${LOG_FILE}"
+GETLASTLOG="tail --lines=1 ${LOG_FILE}"
+GETLASTMACHINEID="tail --lines=1 ${LOG_FILE} | grep -Eo '[0-9a-z]{32}'"
+GETLASTOP="tail --lines=1 ${LOG_FILE} | grep -Eo '(\->|<\-)'"
 
 confirm_choice()
 {
@@ -82,7 +84,7 @@ read_manifest()
 
 log_operation()
 {
-  MACHINEID=$(${GETMACHINEID})
+  MACHINEID=$(eval ${GETMACHINEID})
   OPERATION_TIME=$(eval ${TIMESTAMP_LOG})
 
   case $1 in
@@ -100,6 +102,63 @@ log_operation()
   esac
 }
 
+print_warning()
+{
+  MACHINEID=$(eval ${GETMACHINEID})
+  LASTMACHINEID=$(eval ${GETLASTMACHINEID})
+  LASTOP=$(eval ${GETLASTOP})
+  
+  if [ "$LASTMACHINEID" = "$MACHINEID" ]
+  then
+    if [ "$LASTOP" = "->" ] && [ "$COMMAND" = "local-to-remote" ]
+    then
+      echo "WARN: ОСОБОЕ ПРЕДУПРЕЖДЕНИЕ!"
+      echo "WARN: Возможна потеря данных в REMOTE [$MACHINEID] !"
+    fi
+    
+    if [ "$LASTOP" = "->" ] && [ "$COMMAND" = "remote-to-local" ]
+    then
+      : 
+    fi
+    
+    if [ "$LASTOP" = "<-" ] && [ "$COMMAND" = "local-to-remote" ]
+    then
+      echo "WARN: ОСОБОЕ ПРЕДУПРЕЖДЕНИЕ!"
+      echo "WARN: Возможна потеря данных в REMOTE [$MACHINEID] !"
+    fi
+    
+    if [ "$LASTOP" = "<-" ] && [ "$COMMAND" = "remote-to-local" ]
+    then
+      : 
+    fi
+  fi
+  
+  if [ "$LASTMACHINEID" != "$MACHINEID" ]
+  then
+    if [ "$LASTOP" = "->" ] && [ "$COMMAND" = "local-to-remote" ]
+    then
+      echo "WARN: Возможна потеря данных в REMOTE [$MACHINEID] !"
+    fi
+    
+    if [ "$LASTOP" = "->" ] && [ "$COMMAND" = "remote-to-local" ]
+    then
+      echo "WARN: Нарушение потока работы!"
+      echo "WARN: Копирование из REMOTE [$MACHINEID] в LOCAL после копирования из LOCAL в REMOTE [$LASTMACHINEID]"
+    fi
+    
+    if [ "$LASTOP" = "<-" ] && [ "$COMMAND" = "local-to-remote" ]
+    then
+      echo "WARN: Возможна потеря данных в REMOTE [$MACHINEID] !"
+    fi
+    
+    if [ "$LASTOP" = "<-" ] && [ "$COMMAND" = "remote-to-local" ]
+    then
+      echo "WARN: ОСОБОЕ ПРЕДУПРЕЖДЕНИЕ!"
+      echo "WARN: Возможна потеря данных в LOCAL!"
+    fi
+  fi
+}
+
 print_info()
 {
   if [ ${VERBOSE} -le 0 ]
@@ -107,10 +166,10 @@ print_info()
     return 1
   fi
 
-  MACHINEID=$(${GETMACHINEID})
+  MACHINEID=$(eval ${GETMACHINEID})
   if [ -f ${LOG_FILE} ]
   then
-    LASTLOG=$(${GETLASTLOG})
+    LASTLOG=$(eval ${GETLASTLOG})
   fi
   
   echo "Идентифиакатор удаленного хранилища: ${MACHINEID}"
@@ -210,6 +269,11 @@ sync_remote_to_local()
   then
     echo "                    LOCAL <- REMOTE [${MACHINEID}]" "-- Текущая операция"
     echo "Копирование данных в локальное хранилище:" ${LOCAL_DIR}
+    if [ ${DRY_RUN} -eq 1 ]
+    then
+      echo "INFO: Изменения не будут записаны на диск!"
+    fi
+    print_warning
   fi
   
   confirm_choice
@@ -241,6 +305,11 @@ sync_local_to_remote()
   then
     echo "                    LOCAL -> REMOTE [${MACHINEID}]" "-- Текущая операция"
     echo "Копирование данных в удаленное хранилище:" ${REMOTE_DIR}
+    if [ ${DRY_RUN} -eq 1 ]
+    then
+      echo "INFO: Изменения не будут записаны на диск!"
+    fi
+    print_warning
   fi
   
   confirm_choice
